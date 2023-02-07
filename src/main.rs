@@ -101,7 +101,6 @@ async fn main() {
     run_graph(graph).await;
 }
 
-
 async fn run_graph(mut graph: ForceGraph::<usize>) {
 
     const NODE_RADIUS: f32 = 15.0;
@@ -110,6 +109,15 @@ async fn run_graph(mut graph: ForceGraph::<usize>) {
         let (mouse_x, mouse_y) = mouse_position();
         ((node.x() - mouse_x) * (node.x() - mouse_x) + (node.y() - mouse_y) * (node.y() - mouse_y))
             < NODE_RADIUS * NODE_RADIUS
+    }
+
+    fn draw_arrow(node1: Vec2, node2: Vec2) {
+        fn get_value<F: Fn(Vec2)->f32>(f: F, node1: Vec2, node2: Vec2) -> f32 {
+            f(node2) + NODE_RADIUS * (f(node1) - f(node2)) /
+                ((node1.x - node2.x).powi(2) + (node1.y - node2.y).powi(2)).sqrt()
+        }
+        let point1 = Vec2::new(get_value(|x| x.x, node1, node2), get_value(|x| x.y, node1, node2));
+        draw_circle(point1.x, point1.y, NODE_RADIUS / 6., BLUE);
     }
 
     let mut dragging_node_idx = None;
@@ -149,13 +157,14 @@ async fn run_graph(mut graph: ForceGraph::<usize>) {
             }
         });
 
-        graph.visit_edges(|_node1, node2, _edge| {
+        graph.visit_edges(|node1, node2, _edge| {
             let x = node2.x();
             let y = node2.y();
             let v1 = Vec2::new(x - NODE_RADIUS, y);
             let v2 = Vec2::new(x - NODE_RADIUS - NODE_RADIUS, y - NODE_RADIUS / 2.);
             let v3 = Vec2::new(x - NODE_RADIUS - NODE_RADIUS, y + NODE_RADIUS / 2.);
             draw_triangle(v1, v3, v2, GRAY);
+            draw_arrow(Vec2::new(node1.x(), node1.y()), Vec2::new(node2.x(), node2.y()));
             // draw_circle(x - NODE_RADIUS, y, NODE_RADIUS, RED);
             // draw_circle(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS, YELLOW);
             // draw_circle(x - NODE_RADIUS, y + NODE_RADIUS, NODE_RADIUS, GREEN);

@@ -3,7 +3,6 @@
 use force_graph::{ForceGraph, Node, NodeData};
 use macroquad::prelude::*;
 
-const NODE_RADIUS: f32 = 15.0;
 
 #[allow(unused)]
 fn from_array<const M: usize, const N: usize>(arr: [[i32; N]; M]) -> Vec<Vec<i32>> {
@@ -81,9 +80,16 @@ fn init_graph() -> ForceGraph::<usize> {
         user_data: 2,
         ..Default::default()
     });
+    let n3_idx = graph.add_node(NodeData {
+        x: 3.0 * screen_width() / 4.0,
+        y: 3.0 * screen_height() / 4.0,
+        user_data: 3,
+        ..Default::default()
+    });
 
     // set up links between nodes
     graph.add_edge(n1_idx, n2_idx, Default::default());
+    graph.add_edge(n2_idx, n3_idx, Default::default());
 
     graph
 }
@@ -91,7 +97,20 @@ fn init_graph() -> ForceGraph::<usize> {
 #[macroquad::main("Demo")]
 async fn main() {
 
-    let mut graph = init_graph();
+    let graph = init_graph();
+    run_graph(graph).await;
+}
+
+
+async fn run_graph(mut graph: ForceGraph::<usize>) {
+
+    const NODE_RADIUS: f32 = 15.0;
+
+    fn node_overlaps_mouse_position(node: &Node<usize>) -> bool {
+        let (mouse_x, mouse_y) = mouse_position();
+        ((node.x() - mouse_x) * (node.x() - mouse_x) + (node.y() - mouse_y) * (node.y() - mouse_y))
+            < NODE_RADIUS * NODE_RADIUS
+    }
 
     let mut dragging_node_idx = None;
 
@@ -129,8 +148,6 @@ async fn main() {
                 draw_circle_lines(node.x(), node.y(), NODE_RADIUS, 2.0, RED);
             }
         });
-
-
 
         graph.visit_edges(|_node1, node2, _edge| {
             let x = node2.x();
@@ -173,12 +190,6 @@ async fn main() {
         next_frame().await
     }
 
-}
-
-fn node_overlaps_mouse_position(node: &Node<usize>) -> bool {
-    let (mouse_x, mouse_y) = mouse_position();
-    ((node.x() - mouse_x) * (node.x() - mouse_x) + (node.y() - mouse_y) * (node.y() - mouse_y))
-        < NODE_RADIUS * NODE_RADIUS
 }
 
 #[allow(unused)]

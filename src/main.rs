@@ -111,63 +111,42 @@ async fn run_graph(mut graph: ForceGraph::<usize>) {
             < NODE_RADIUS * NODE_RADIUS
     }
 
-    fn draw_arrow(node1: Vec2, node2: Vec2) -> String {
+    fn draw_arrow(node1: Vec2, node2: Vec2) {
         const ANGLE: f32 = 0.6;
-        fn get_value<F: Fn(Vec2)->f32>(f: F, node1: Vec2, node2: Vec2) -> f32 {
-            f(node2) + NODE_RADIUS * (f(node1) - f(node2)) /
+        fn get_value<F: Fn(Vec2)->f32>(f: F, dis: f32, node1: Vec2, node2: Vec2) -> f32 {
+            f(node2) + dis * (f(node1) - f(node2)) /
                 ((node1.x - node2.x).powi(2) + (node1.y - node2.y).powi(2)).sqrt()
         }
-        fn get_value2<F: Fn(Vec2)->f32>(f: F, node1: Vec2, node2: Vec2) -> f32 {
-            f(node2) + 2. * NODE_RADIUS * (f(node1) - f(node2)) /
-                ((node1.x - node2.x).powi(2) + (node1.y - node2.y).powi(2)).sqrt()
-        }
-        // fn get_point2_x(node1: Vec2, node2: Vec2, point1: Vec2) -> f32 {
-        //     point1.x -
-        //     (
-        //         4. / 3. * NODE_RADIUS
-        //         -
-        //         (
-        //             (node2.x - point1.x) / (node2.y - point1.y) * ()
-        //         ).powi(2)
-        //     ).sqrt()
-        // }
-        let point1 = Vec2::new(get_value(|x| x.x, node1, node2), get_value(|x| x.y, node1, node2));
-        let v1 = point1;
-        draw_circle(point1.x, point1.y, NODE_RADIUS / 6., BLUE);
-        let point_x = Vec2::new(get_value2(|x| x.x, node1, node2), get_value2(|x| x.y, node1, node2));
-        draw_circle(point_x.x, point_x.y, NODE_RADIUS / 6., BLUE);
+        
+        let v1 = Vec2::new(
+            get_value(|x| x.x, NODE_RADIUS, node1, node2),
+            get_value(|x| x.y, NODE_RADIUS, node1, node2)
+        );
+        let point_x = Vec2::new(
+            get_value(|x| x.x, 2.0 * NODE_RADIUS, node1, node2),
+            get_value(|x| x.y, 2.0 * NODE_RADIUS, node1, node2)
+        );
 
-        let x = point1.x + (point_x.x - point1.x) * ANGLE.cos() - (point_x.y - point1.y) * ANGLE.sin();
-        let y = point1.y + (point_x.y - point1.y) * ANGLE.cos() + (point_x.x - point1.x) * ANGLE.sin();
+        let x = v1.x + (point_x.x - v1.x) * ANGLE.cos() - (point_x.y - v1.y) * ANGLE.sin();
+        let y = v1.y + (point_x.y - v1.y) * ANGLE.cos() + (point_x.x - v1.x) * ANGLE.sin();
         let v2 = Vec2::new(x, y);
 
-
-        draw_circle(x, y, NODE_RADIUS / 6., RED);
-
-        let x = point1.x + (point_x.x - point1.x) * (-ANGLE).cos() - (point_x.y - point1.y) * (-ANGLE).sin();
-        let y = point1.y + (point_x.y - point1.y) * (-ANGLE).cos() + (point_x.x - point1.x) * (-ANGLE).sin();
+        let x = v1.x + (point_x.x - v1.x) * (-ANGLE).cos() - (point_x.y - v1.y) * (-ANGLE).sin();
+        let y = v1.y + (point_x.y - v1.y) * (-ANGLE).cos() + (point_x.x - v1.x) * (-ANGLE).sin();
         let v3 = Vec2::new(x, y);
 
-        draw_circle(x, y, NODE_RADIUS / 6., RED);
-
+        draw_line(node1.x, node1.y, node2.x, node2.y, 2.0, GRAY);
         draw_triangle(v1, v2, v3, GRAY);
-
-        format!("point_x = {:?}\npoint1 = {:?}\nx, y = {} {}", point_x, point1, x, y)
     }
 
     let mut dragging_node_idx = None;
-
-    let mut count = 0;
 
     loop {
         clear_background(BLACK);
 
         // draw edges
-        graph.visit_edges(|node1, node2, _edge| {
-            if count == 100 {
-                println!("{:?}", Vec2::new(node2.x(), node2.y()));
-            }
-            draw_line(node1.x(), node1.y(), node2.x(), node2.y(), 2.0, GRAY);
+        graph.visit_edges(|node1, node2, _edge| {            
+            draw_arrow(Vec2::new(node1.x(), node1.y()), Vec2::new(node2.x(), node2.y()));
         });
 
         // draw nodes
@@ -192,23 +171,6 @@ async fn run_graph(mut graph: ForceGraph::<usize>) {
             }
         });
 
-        graph.visit_edges(|node1, node2, _edge| {
-            let x = node2.x();
-            let y = node2.y();
-            let v1 = Vec2::new(x - NODE_RADIUS, y);
-            let v2 = Vec2::new(x - NODE_RADIUS - NODE_RADIUS, y - NODE_RADIUS / 2.);
-            let v3 = Vec2::new(x - NODE_RADIUS - NODE_RADIUS, y + NODE_RADIUS / 2.);
-            draw_triangle(v1, v3, v2, GRAY);
-            let v = draw_arrow(Vec2::new(node1.x(), node1.y()), Vec2::new(node2.x(), node2.y()));
-            // draw_circle(x - NODE_RADIUS, y, NODE_RADIUS, RED);
-            // draw_circle(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS, YELLOW);
-            // draw_circle(x - NODE_RADIUS, y + NODE_RADIUS, NODE_RADIUS, GREEN);
-            if count == 100 {
-                println!("{:?}", [v1, v2, v3]);
-                println!("{}", v);
-            }
-        });
-
         // drag nodes with the mouse
         if is_mouse_button_down(MouseButton::Left) {
             graph.visit_nodes_mut(|node| {
@@ -224,10 +186,6 @@ async fn run_graph(mut graph: ForceGraph::<usize>) {
             });
         } else {
             dragging_node_idx = None;
-        }
-
-        if count <= 1000 {
-            count += 1;
         }
 
         graph.update(get_frame_time());

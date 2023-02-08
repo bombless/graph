@@ -14,54 +14,6 @@ fn get_data() -> Vec<Vec<i32>> {
     from_array([[1,2],[3,4]])
 }
 
-#[allow(unused)]
-fn test_graph() -> ForceGraph::<usize> {
-
-    // create a force graph with default parameters
-    let mut graph = ForceGraph::<usize>::new(Default::default());
-
-    // create nodes
-    let n1_idx = graph.add_node(NodeData {
-        x: screen_width() / 4.0,
-        y: screen_height() / 4.0,
-        user_data: 1,
-        ..Default::default()
-    });
-    let n2_idx = graph.add_node(NodeData {
-        x: 3.0 * screen_width() / 4.0,
-        y: screen_height() / 4.0,
-        user_data: 2,
-        ..Default::default()
-    });
-    let n3_idx = graph.add_node(NodeData {
-        x: screen_width() / 4.0,
-        y: 3.0 * screen_height() / 4.0,
-        user_data: 3,
-        ..Default::default()
-    });
-    let n4_idx = graph.add_node(NodeData {
-        x: 3.0 * screen_width() / 4.0,
-        y: 3.0 * screen_height() / 4.0,
-        user_data: 4,
-        ..Default::default()
-    });
-    let n5_idx = graph.add_node(NodeData {
-        x: screen_width() / 2.0,
-        y: screen_height() / 2.0,
-        user_data: 5,
-        is_anchor: true,
-        ..Default::default()
-    });
-
-    // set up links between nodes
-    graph.add_edge(n1_idx, n5_idx, Default::default());
-    graph.add_edge(n2_idx, n5_idx, Default::default());
-    graph.add_edge(n3_idx, n5_idx, Default::default());
-    graph.add_edge(n4_idx, n5_idx, Default::default());
-
-    graph
-}
-
 fn init_graph() -> ForceGraph::<usize> {
 
     // create a force graph with default parameters

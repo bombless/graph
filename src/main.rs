@@ -1,6 +1,6 @@
 #![feature(const_trait_impl)]
 
-use force_graph::{ForceGraph, Node, NodeData};
+use force_graph::{ForceGraph, Node, NodeData, DefaultNodeIdx};
 use macroquad::prelude::*;
 
 
@@ -276,6 +276,38 @@ impl Solution {
         }
         uf
     }
+    fn rank_groups(matrix: &Vec<Vec<i32>>, mut graph: ForceGraph<Pos>, uf: &UnionFind) -> Vec<(usize, usize)> {
+        fn find_min<'a>(matrix: &Vec<Vec<i32>>, iter: impl Iterator<Item=&'a (usize, usize)>, graph: ForceGraph<Pos>) -> (usize, usize) {
+            let mut ret = None;
+            let mut min = std::i32::MAX;
+            for v in iter {
+                let mut pass = true;
+                graph.visit_edges(|_node1, node2, _edge| {
+                    if &node2.data.user_data.0.1 == v {
+                        pass = false;
+                    }
+                });
+                let i = matrix[v.0][v.1];
+                if pass && min > i {
+                    min = i;
+                    ret = Some(*v)
+                }
+            }
+            ret.unwrap()
+        }
+        fn query_node(head: (usize, usize), graph: ForceGraph<Pos>) -> (DefaultNodeIdx, Vec<(usize, usize)>) {
+            let mut id = None;
+            let mut next = Vec::new();
+            graph.visit_edges(|node1, node2, _edge| {
+                if node1.data.user_data.0.1 == head {
+                    id = Some(node1.index());
+                    next.push(node1.data.user_data.0.1);
+                }
+            });
+            unimplemented!()
+        }
+        unimplemented!()
+    }
 }
 
 struct UnionFind(HashMap<(usize, usize), (usize, usize)>);
@@ -302,6 +334,9 @@ impl UnionFind {
             self.0.insert(v, v);
         }
         *self.0.get(&v).unwrap()
+    }
+    fn values(&self) -> impl Iterator<Item=&(usize, usize)> {
+        self.0.values()
     }
     fn groups(&mut self) -> HashMap<(usize, usize), Vec<(usize, usize)>> {
         let mut ret = HashMap::new();

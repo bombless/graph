@@ -49,15 +49,18 @@ fn init_graph() -> ForceGraph::<usize> {
 #[macroquad::main("Demo")]
 async fn main() {
 
-    let graph = init_graph();
+    // let graph = init_graph();
+    let matrix = get_data();
+    let mut uf = Solution::union_find(&matrix);
+    let graph = Solution::force_graph(&matrix, &mut uf);
     run_graph(graph).await;
 }
 
-async fn run_graph(mut graph: ForceGraph::<usize>) {
+async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
 
     const NODE_RADIUS: f32 = 15.0;
 
-    fn node_overlaps_mouse_position(node: &Node<usize>) -> bool {
+    fn node_overlaps_mouse_position<T>(node: &Node<T>) -> bool {
         let (mouse_x, mouse_y) = mouse_position();
         ((node.x() - mouse_x) * (node.x() - mouse_x) + (node.y() - mouse_y) * (node.y() - mouse_y))
             < NODE_RADIUS * NODE_RADIUS
@@ -107,10 +110,10 @@ async fn run_graph(mut graph: ForceGraph::<usize>) {
             draw_circle(node.x(), node.y(), NODE_RADIUS, WHITE);
             draw_text(
                 &node.data.user_data.to_string(),
-                node.x() - NODE_RADIUS / 2.0,
+                node.x() + NODE_RADIUS,
                 node.y() + NODE_RADIUS / 2.0,
                 25.0,
-                BLACK,
+                RED,
             );
 
             // highlight hovered or dragged node
@@ -152,6 +155,43 @@ struct Solution;
 
 use std::collections::HashMap;
 
+struct OrderedVec<T, F>(Vec<T>, F);
+
+impl<T: Eq, F: Fn(&T, &T)->bool> OrderedVec<T, F> {
+    fn new(f: F) -> Self {
+        Self(Vec::new(), f)
+    }
+    fn insert(&mut self, v: T) {
+        for i in 0 .. self.0.len() {
+            if v == self.0[i] {
+                return;
+            }
+            if self.1(&self.0[i], &v) {
+                self.0.insert(i, v);
+                return;
+            }
+        }
+        self.0.insert(self.0.len(), v);
+    }
+    fn iter(&self) -> impl Iterator<Item=&T> {
+        self.0.iter()
+    }
+}
+
+#[derive(Default)]
+struct Pos((i32, (usize, usize)));
+
+impl From<(i32, (usize, usize))> for Pos {
+    fn from(x: (i32, (usize, usize))) -> Self {
+        Self(x)
+    }
+}
+impl ToString for Pos {
+    fn to_string(&self) -> String {
+        format!("{:?}", self.0)
+    }
+}
+
 impl Solution {
     #[allow(unused)]
     pub fn matrix_rank_transform(matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
@@ -159,8 +199,60 @@ impl Solution {
         let graph = Self::force_graph(&matrix, &mut uf);
         unimplemented!()
     }
-    fn force_graph(matrix: &Vec<Vec<i32>>, uf: &mut UnionFind) -> ForceGraph<(i32, (usize, usize))> {
-        unimplemented!()
+    fn force_graph(matrix: &Vec<Vec<i32>>, uf: &mut UnionFind) -> ForceGraph<Pos> {
+        fn cmp(x: &(i32, (usize, usize)), y: &(i32, (usize, usize))) -> bool {
+            x.0 > y.0
+        }
+        let m = matrix.len();
+        let n = matrix[0].len();
+
+        let mut graph = ForceGraph::new(Default::default());
+
+        let mut map = HashMap::new();
+
+        for i in 0..m {
+            let mut v = OrderedVec::new(cmp);
+            for j in 0..n {
+                v.insert((matrix[i][j], uf.find((i, j))));
+            }
+            let mut last_id = None;
+
+            for &e in v.iter() {
+                let id = graph.add_node(NodeData {
+                    x: screen_width() / 4.0,
+                    y: screen_height() / 4.0,
+                    user_data: e.into(),
+                    ..Default::default()
+                });
+                map.insert(e.1, id);
+
+                if let Some(last_id) = last_id {
+                    graph.add_edge(last_id, id, Default::default());
+                }
+
+                last_id = Some(id);
+            }
+        }
+
+        for j in 0..n {
+            let mut v = OrderedVec::new(cmp);
+            for i in 0..m {
+                v.insert((matrix[i][j], uf.find((i, j))));
+            }
+            let mut last_id = None;
+
+            for &e in v.iter() {
+
+                let id = *map.get(&e.1).unwrap();
+
+                if let Some(last_id) = last_id {
+                    graph.add_edge(last_id, id, Default::default());
+                }
+
+                last_id = Some(id);
+            }
+        }
+        graph
     }
     fn union_find(matrix: &Vec<Vec<i32>>) -> UnionFind {
         let mut uf = UnionFind::new();

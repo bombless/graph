@@ -150,9 +150,56 @@ async fn run_graph(mut graph: ForceGraph::<usize>) {
 #[allow(unused)]
 struct Solution;
 
+use std::collections::HashMap;
+
 impl Solution {
     #[allow(unused)]
     pub fn matrix_rank_transform(matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
-        matrix
+        let mut uf = UnionFind::new();
+        for i in 0..matrix.len() {
+            for j in 0..matrix[0].len() {
+
+            }
+        }
+        unimplemented!()
+    }
+}
+
+struct UnionFind(HashMap<(usize, usize), (usize, usize)>);
+
+impl UnionFind {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+    fn union(&mut self, l: (usize, usize), r: (usize, usize)) {
+        if !self.0.contains_key(&l) {
+            self.0.insert(l, l);
+        }
+        if !self.0.contains_key(&r) {
+            self.0.insert(r, r);
+        }
+        let pl = self.find(l);
+        let pr = self.find(r);
+        if pl != pr {
+            self.0.insert(pl, pr);
+        }
+    }
+    fn find(&mut self, v: (usize, usize)) -> (usize, usize) {
+        if !self.0.contains_key(&v) {
+            self.0.insert(v, v);
+        }
+        *self.0.get(&v).unwrap()
+    }
+    fn groups(&mut self) -> HashMap<(usize, usize), Vec<(usize, usize)>> {
+        let mut ret = HashMap::new();
+        let keys = self.0.keys().cloned().collect::<Vec<_>>();
+        for g in keys {
+            let p = self.find(g);
+            if !ret.contains_key(&p) {
+                ret.insert(p, Vec::new());
+            }
+            ret.get_mut(&p).unwrap().push(g);
+        }
+        ret
     }
 }

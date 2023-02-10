@@ -155,13 +155,34 @@ use std::collections::HashMap;
 impl Solution {
     #[allow(unused)]
     pub fn matrix_rank_transform(matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
+        let mut uf = Self::union_find(&matrix);
+        let graph = Self::force_graph(&matrix, &mut uf);
+        unimplemented!()
+    }
+    fn force_graph(matrix: &Vec<Vec<i32>>, uf: &mut UnionFind) -> ForceGraph<(i32, (usize, usize))> {
+        unimplemented!()
+    }
+    fn union_find(matrix: &Vec<Vec<i32>>) -> UnionFind {
         let mut uf = UnionFind::new();
-        for i in 0..matrix.len() {
-            for j in 0..matrix[0].len() {
+        let m = matrix.len();
+        let n = matrix[0].len();
+        for i in 0..m {
+            for j in 0..n {
+                let value = matrix[i][j];
+                for k in 0..m {
+                    if value == matrix[k][j] {
+                        uf.union((i, j), (k, j));
+                    }
+                }
+                for k in 0..n {
+                    if value == matrix[i][k] {
+                        uf.union((i, j), (i, k));
+                    }
+                }
 
             }
         }
-        unimplemented!()
+        uf
     }
 }
 

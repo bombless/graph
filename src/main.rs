@@ -276,26 +276,26 @@ impl Solution {
         }
         uf
     }
-    fn rank_groups(matrix: &Vec<Vec<i32>>, mut graph: ForceGraph<Pos>, uf: &UnionFind) -> Vec<(usize, usize)> {
-        fn find_min<'a>(matrix: &Vec<Vec<i32>>, iter: impl Iterator<Item=&'a (usize, usize)>, graph: ForceGraph<Pos>) -> (usize, usize) {
+    fn rank_groups(matrix: &Vec<Vec<i32>>, graph: &mut ForceGraph<Pos>, uf: &mut UnionFind) -> Vec<(usize, usize)> {
+        fn find_min<'a>(matrix: &Vec<Vec<i32>>, iter: &Vec<&'a (usize, usize)>, graph: &ForceGraph<Pos>) -> (usize, usize) {
             let mut ret = None;
             let mut min = std::i32::MAX;
             for v in iter {
                 let mut pass = true;
                 graph.visit_edges(|_node1, node2, _edge| {
-                    if &node2.data.user_data.0.1 == v {
+                    if &node2.data.user_data.0.1 == *v {
                         pass = false;
                     }
                 });
                 let i = matrix[v.0][v.1];
                 if pass && min > i {
                     min = i;
-                    ret = Some(*v)
+                    ret = Some(**v)
                 }
             }
             ret.unwrap()
         }
-        fn query_node(head: (usize, usize), graph: ForceGraph<Pos>) -> (DefaultNodeIdx, Vec<(usize, usize)>) {
+        fn query_node(head: (usize, usize), graph: &ForceGraph<Pos>) -> (DefaultNodeIdx, Vec<(usize, usize)>) {
             let mut id = None;
             let mut next = Vec::new();
             graph.visit_edges(|node1, node2, _edge| {
@@ -304,8 +304,17 @@ impl Solution {
                     next.push(node1.data.user_data.0.1);
                 }
             });
-            unimplemented!()
+            (id.unwrap(), next)
         }
+        let v = uf.values().collect::<Vec<_>>();
+        let node_count = v.len();
+
+        while node_count > 0 {
+            let head = find_min(matrix, &v, graph);
+            let (id, next) = query_node(head, graph);
+
+        }
+
         unimplemented!()
     }
 }

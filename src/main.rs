@@ -308,14 +308,18 @@ impl Solution {
         }
         let v = uf.values().collect::<Vec<_>>();
         let node_count = v.len();
+        let ret = Vec::new();
+        let groups = uf.groups();
 
         while node_count > 0 {
             let head = find_min(matrix, &v, graph);
             let (id, next) = query_node(head, graph);
-
+            graph.remove_node(id);
+            node_count -= 1;
+            ret.push(*groups.get(&head));
         }
 
-        unimplemented!()
+        ret
     }
 }
 

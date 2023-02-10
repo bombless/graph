@@ -51,9 +51,10 @@ async fn main() {
 
     // let graph = init_graph();
     let matrix = get_data();
-    let mut uf = Solution::union_find(&matrix);
-    let graph = Solution::force_graph(&matrix, &mut uf);
-    run_graph(graph).await;
+    println!("{:?}", Solution::matrix_rank_transform(matrix));
+    // let mut uf = Solution::union_find(&matrix);
+    // let graph = Solution::force_graph(&matrix, &mut uf);
+    // run_graph(graph).await;
 }
 
 async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
@@ -194,10 +195,19 @@ impl ToString for Pos {
 
 impl Solution {
     #[allow(unused)]
-    pub fn matrix_rank_transform(matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
+    pub fn matrix_rank_transform(mut matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
         let mut uf = Self::union_find(&matrix);
-        let graph = Self::force_graph(&matrix, &mut uf);
-        unimplemented!()
+        let mut graph = Self::force_graph(&matrix, &mut uf);
+        let groups = uf.groups();
+        let ranking = Self::rank_groups(&matrix, &mut graph, &mut uf);
+        let mut curr_rank = 1;
+        for e in ranking {
+            for &(i, j) in groups.get(&e).unwrap() {
+                matrix[i][j] = curr_rank;
+            }
+            curr_rank += 1;
+        }
+        matrix
     }
     fn force_graph(matrix: &Vec<Vec<i32>>, uf: &mut UnionFind) -> ForceGraph<Pos> {
         fn cmp(x: &(i32, (usize, usize)), y: &(i32, (usize, usize))) -> bool {
@@ -298,7 +308,7 @@ impl Solution {
         fn query_node(head: (usize, usize), graph: &ForceGraph<Pos>) -> (DefaultNodeIdx, Vec<(usize, usize)>) {
             let mut id = None;
             let mut next = Vec::new();
-            graph.visit_edges(|node1, node2, _edge| {
+            graph.visit_edges(|node1, _node2, _edge| {
                 if node1.data.user_data.0.1 == head {
                     id = Some(node1.index());
                     next.push(node1.data.user_data.0.1);
@@ -307,16 +317,16 @@ impl Solution {
             (id.unwrap(), next)
         }
         let v = uf.values().collect::<Vec<_>>();
-        let node_count = v.len();
-        let ret = Vec::new();
-        let groups = uf.groups();
+        let mut node_count = v.len();
+        let mut ret = Vec::new();
 
         while node_count > 0 {
             let head = find_min(matrix, &v, graph);
-            let (id, next) = query_node(head, graph);
+            println!("query {:?}", head);
+            let (id, _next) = query_node(head, graph);
             graph.remove_node(id);
             node_count -= 1;
-            ret.push(*groups.get(&head));
+            ret.push(head);
         }
 
         ret

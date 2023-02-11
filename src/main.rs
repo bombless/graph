@@ -1,6 +1,6 @@
 #![feature(const_trait_impl)]
 
-use naive_force_graph::{ForceGraph, Node, NodeData, NodeId};
+use naive_force_graph::{ForceGraph, Node, NodeData, NodeId, Parameters};
 use macroquad::prelude::*;
 
 
@@ -51,10 +51,10 @@ async fn main() {
 
     // let graph = init_graph();
     let matrix = get_data();
-    println!("result {:?}", Solution::matrix_rank_transform(matrix));
-    // let mut uf = Solution::union_find(&matrix);
-    // let graph = Solution::force_graph(&matrix, &mut uf);
-    // run_graph(graph).await;
+    // println!("result {:?}", Solution::matrix_rank_transform(matrix));
+    let mut uf = Solution::union_find(&matrix);
+    let graph = Solution::force_graph(&matrix, &mut uf);
+    run_graph(graph).await;
 }
 
 async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
@@ -97,6 +97,8 @@ async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
 
     let mut dragging_node_idx = None;
 
+    let mut i = 0;
+
     loop {
         clear_background(BLACK);
 
@@ -106,7 +108,11 @@ async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
         });
 
         // draw nodes
-        graph.visit_nodes(|_, node| {
+        graph.visit_nodes(|id, node| {
+
+            if i < 100 {
+                // println!("{:?} {:?}", id, (node.x(), node.y()));
+            }
 
             draw_circle(node.x(), node.y(), NODE_RADIUS, WHITE);
             draw_text(
@@ -143,6 +149,8 @@ async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
         } else {
             dragging_node_idx = None;
         }
+
+        if i < 1000 { i += 1; }
 
         graph.update(get_frame_time());
 
@@ -219,7 +227,7 @@ impl Solution {
         let m = matrix.len();
         let n = matrix[0].len();
 
-        let mut graph = ForceGraph::new(Default::default());
+        let mut graph = ForceGraph::new(Parameters { ideal_distance: 200., ..Parameters::default() });
 
         let mut map = HashMap::new();
 
@@ -336,7 +344,7 @@ impl Solution {
         graph.visit_nodes(|_, node| {
             remaining.push(node.user_data().0.1);
         });
-        println!("(ret, remaining) {:?}", (&ret, &remaining));
+        //println!("(ret, remaining) {:?}", (&ret, &remaining));
         (ret, remaining)
     }
 }

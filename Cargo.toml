@@ -9,5 +9,8 @@ edition = "2018"
 
 [dependencies]
 petgraph = "0.6"
-force_graph = "0.3.2"
+#force_graph = "0.3.2"
 macroquad = "0.3"
+
+[dependencies.naive-force-graph]
+path = "../naive-force-2"

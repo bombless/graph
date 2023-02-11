@@ -1,6 +1,6 @@
 #![feature(const_trait_impl)]
 
-use force_graph::{ForceGraph, Node, NodeData, DefaultNodeIdx};
+use naive_force_graph::{ForceGraph, Node, NodeData, NodeId};
 use macroquad::prelude::*;
 
 
@@ -51,7 +51,7 @@ async fn main() {
 
     // let graph = init_graph();
     let matrix = get_data();
-    println!("{:?}", Solution::matrix_rank_transform(matrix));
+    println!("result {:?}", Solution::matrix_rank_transform(matrix));
     // let mut uf = Solution::union_find(&matrix);
     // let graph = Solution::force_graph(&matrix, &mut uf);
     // run_graph(graph).await;
@@ -101,16 +101,16 @@ async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
         clear_background(BLACK);
 
         // draw edges
-        graph.visit_edges(|node1, node2, _edge| {            
+        graph.visit_edges(|_, node1, node2, _edge| {            
             draw_arrow(Vec2::new(node1.x(), node1.y()), Vec2::new(node2.x(), node2.y()));
         });
 
         // draw nodes
-        graph.visit_nodes(|node| {
+        graph.visit_nodes(|_, node| {
 
             draw_circle(node.x(), node.y(), NODE_RADIUS, WHITE);
             draw_text(
-                &node.data.user_data.to_string(),
+                &node.user_data().to_string(),
                 node.x() + NODE_RADIUS,
                 node.y() + NODE_RADIUS / 2.0,
                 25.0,
@@ -129,12 +129,12 @@ async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
 
         // drag nodes with the mouse
         if is_mouse_button_down(MouseButton::Left) {
-            graph.visit_nodes_mut(|node| {
+            graph.visit_nodes_mut(|_, node| {
                 if let Some(idx) = dragging_node_idx {
                     if idx == node.index() {
                         let (mouse_x, mouse_y) = mouse_position();
-                        node.data.x = mouse_x;
-                        node.data.y = mouse_y;
+                        node.x = mouse_x;
+                        node.y = mouse_y;
                     }
                 } else if node_overlaps_mouse_position(node) {
                     dragging_node_idx = Some(node.index());
@@ -199,13 +199,16 @@ impl Solution {
         let mut uf = Self::union_find(&matrix);
         let mut graph = Self::force_graph(&matrix, &mut uf);
         let groups = uf.groups();
-        let ranking = Self::rank_groups(&matrix, &mut graph, &mut uf);
+        let (ranking, remaining) = Self::rank_groups(&matrix, &mut graph, &mut uf);
         let mut curr_rank = 1;
         for e in ranking {
             for &(i, j) in groups.get(&e).unwrap() {
                 matrix[i][j] = curr_rank;
             }
             curr_rank += 1;
+        }
+        for (i, j) in remaining {
+            matrix[i][j] = curr_rank;
         }
         matrix
     }
@@ -286,50 +289,55 @@ impl Solution {
         }
         uf
     }
-    fn rank_groups(matrix: &Vec<Vec<i32>>, graph: &mut ForceGraph<Pos>, uf: &mut UnionFind) -> Vec<(usize, usize)> {
-        fn find_min<'a>(matrix: &Vec<Vec<i32>>, iter: &Vec<&'a (usize, usize)>, graph: &ForceGraph<Pos>) -> (usize, usize) {
+    fn rank_groups(matrix: &Vec<Vec<i32>>, graph: &mut ForceGraph<Pos>, uf: &mut UnionFind)
+    -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
+        fn find_min<'a>(matrix: &Vec<Vec<i32>>, graph: &ForceGraph<Pos>) -> Option<(NodeId, (usize, usize))> {
+            if graph.edge_count() == 0 {
+                return None;
+            }
+            let mut nodes = std::collections::HashMap::new();
+            graph.visit_nodes(|id, node| {
+                nodes.insert(node.user_data().0.1, id);
+            });
+            graph.visit_edges(|_, _node1, node2, _edge| {
+                nodes.remove(&node2.user_data().0.1);
+            });
             let mut ret = None;
             let mut min = std::i32::MAX;
-            for v in iter {
-                let mut pass = true;
-                graph.visit_edges(|_node1, node2, _edge| {
-                    if &node2.data.user_data.0.1 == *v {
-                        pass = false;
-                    }
-                });
-                let i = matrix[v.0][v.1];
-                if pass && min > i {
+            for (pair, id) in &nodes {
+                let i = matrix[pair.0][pair.1];
+                if min > i {
                     min = i;
-                    ret = Some(**v)
+                    ret = Some((*id, *pair))
                 }
             }
-            ret.unwrap()
+            ret
         }
-        fn query_node(head: (usize, usize), graph: &ForceGraph<Pos>) -> (DefaultNodeIdx, Vec<(usize, usize)>) {
+        fn query_node(head: (usize, usize), graph: &ForceGraph<Pos>) -> (NodeId, Vec<(usize, usize)>) {
             let mut id = None;
             let mut next = Vec::new();
-            graph.visit_edges(|node1, _node2, _edge| {
-                if node1.data.user_data.0.1 == head {
-                    id = Some(node1.index());
-                    next.push(node1.data.user_data.0.1);
+            graph.visit_nodes(|_, node| {
+                if node.user_data().0.1 == head {
+                    id = Some(node.index());
+                    next.push(node.user_data().0.1);
                 }
             });
             (id.unwrap(), next)
         }
         let v = uf.values().collect::<Vec<_>>();
-        let mut node_count = v.len();
         let mut ret = Vec::new();
 
-        while node_count > 0 {
-            let head = find_min(matrix, &v, graph);
-            println!("query {:?}", head);
-            let (id, _next) = query_node(head, graph);
+        while let Some((id, head)) = find_min(matrix, graph) {
             graph.remove_node(id);
-            node_count -= 1;
             ret.push(head);
         }
-
-        ret
+        
+        let mut remaining = Vec::new();
+        graph.visit_nodes(|_, node| {
+            remaining.push(node.user_data().0.1);
+        });
+        println!("(ret, remaining) {:?}", (&ret, &remaining));
+        (ret, remaining)
     }
 }
 

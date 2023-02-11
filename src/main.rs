@@ -1,49 +1,14 @@
 #![feature(const_trait_impl)]
 
-use naive_force_graph::{ForceGraph, Node, NodeData, NodeId, Parameters};
+use naive_force_graph::{ForceGraph, Node};
 use macroquad::prelude::*;
 
-
-#[allow(unused)]
 fn from_array<const M: usize, const N: usize>(arr: [[i32; N]; M]) -> Vec<Vec<i32>> {
     IntoIterator::into_iter(arr).map(Vec::from).collect()
 }
 
-#[allow(unused)]
 fn get_data() -> Vec<Vec<i32>> {
     from_array([[1,2],[3,4]])
-}
-
-fn init_graph() -> ForceGraph::<usize> {
-
-    // create a force graph with default parameters
-    let mut graph = ForceGraph::<usize>::new(Default::default());
-
-    // create nodes
-    let n1_idx = graph.add_node(NodeData {
-        x: screen_width() / 4.0,
-        y: screen_height() / 4.0,
-        user_data: 1,
-        ..Default::default()
-    });
-    let n2_idx = graph.add_node(NodeData {
-        x: 3.0 * screen_width() / 4.0,
-        y: screen_height() / 4.0,
-        user_data: 2,
-        ..Default::default()
-    });
-    let n3_idx = graph.add_node(NodeData {
-        x: 3.0 * screen_width() / 4.0,
-        y: 3.0 * screen_height() / 4.0,
-        user_data: 3,
-        ..Default::default()
-    });
-
-    // set up links between nodes
-    graph.add_edge(n1_idx, n2_idx, Default::default());
-    graph.add_edge(n2_idx, n3_idx, Default::default());
-
-    graph
 }
 
 #[macroquad::main("Demo")]
@@ -108,10 +73,10 @@ async fn run_graph<T: ToString>(mut graph: ForceGraph::<T>) {
         });
 
         // draw nodes
-        graph.visit_nodes(|id, node| {
+        graph.visit_nodes(|_id, node| {
 
             if i < 100 {
-                // println!("{:?} {:?}", id, (node.x(), node.y()));
+                // println!("{:?} {:?}", _id, (node.x(), node.y()));
             }
 
             draw_circle(node.x(), node.y(), NODE_RADIUS, WHITE);

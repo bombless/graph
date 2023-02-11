@@ -46,7 +46,7 @@ impl Solution {
         let mut uf = Self::union_find(&matrix);
         let mut graph = Self::force_graph(&matrix, &mut uf);
         let groups = uf.groups();
-        let (ranking, remaining) = Self::rank_groups(&matrix, &mut graph, &mut uf);
+        let (ranking, remaining) = Self::rank_groups(&matrix, &mut graph);
         let mut curr_rank = 1;
         for e in ranking {
             for &(i, j) in groups.get(&e).unwrap() {
@@ -136,7 +136,7 @@ impl Solution {
         }
         uf
     }
-    fn rank_groups(matrix: &Vec<Vec<i32>>, graph: &mut ForceGraph<Pos>, uf: &mut UnionFind)
+    fn rank_groups(matrix: &Vec<Vec<i32>>, graph: &mut ForceGraph<Pos>)
     -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
         fn find_min<'a>(matrix: &Vec<Vec<i32>>, graph: &ForceGraph<Pos>) -> Option<(NodeId, (usize, usize))> {
             if graph.edge_count() == 0 {
@@ -160,18 +160,7 @@ impl Solution {
             }
             ret
         }
-        fn query_node(head: (usize, usize), graph: &ForceGraph<Pos>) -> (NodeId, Vec<(usize, usize)>) {
-            let mut id = None;
-            let mut next = Vec::new();
-            graph.visit_nodes(|_, node| {
-                if node.user_data().0.1 == head {
-                    id = Some(node.index());
-                    next.push(node.user_data().0.1);
-                }
-            });
-            (id.unwrap(), next)
-        }
-        let v = uf.values().collect::<Vec<_>>();
+        
         let mut ret = Vec::new();
 
         while let Some((id, head)) = find_min(matrix, graph) {
@@ -212,9 +201,6 @@ impl UnionFind {
             self.0.insert(v, v);
         }
         *self.0.get(&v).unwrap()
-    }
-    fn values(&self) -> impl Iterator<Item=&(usize, usize)> {
-        self.0.values()
     }
     fn groups(&mut self) -> HashMap<(usize, usize), Vec<(usize, usize)>> {
         let mut ret = HashMap::new();

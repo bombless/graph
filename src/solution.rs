@@ -79,8 +79,8 @@ impl Solution {
 
             for &e in v.iter() {
                 let id = graph.add_node(NodeData {
-                    x: 100.,
-                    y: 100.,
+                    x: 300.,
+                    y: 300.,
                     user_data: e.into(),
                     ..Default::default()
                 });

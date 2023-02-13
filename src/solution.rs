@@ -46,16 +46,13 @@ impl Solution {
         let mut uf = Self::union_find(&matrix);
         let mut graph = Self::force_graph(&matrix, &mut uf);
         let groups = uf.groups();
-        let (ranking, remaining) = Self::rank_groups(&matrix, &mut graph);
-        let mut curr_rank = 1;
-        for e in ranking {
-            for &(i, j) in groups.get(&e).unwrap() {
-                matrix[i][j] = curr_rank;
+        let ranking = Self::rank_groups(&matrix, &mut graph);
+
+        for (id, positions) in groups {
+            let rank = *ranking.get(&id).unwrap();
+            for (i, j) in positions {
+                matrix[i][j] = rank;
             }
-            curr_rank += 1;
-        }
-        for (i, j) in remaining {
-            matrix[i][j] = curr_rank;
         }
         matrix
     }
@@ -66,7 +63,7 @@ impl Solution {
         let m = matrix.len();
         let n = matrix[0].len();
 
-        let mut graph = ForceGraph::new(Parameters { ideal_distance: 200., ..Parameters::default() });
+        let mut graph = ForceGraph::new(Parameters::scale_to_ideal_distance(200.));
 
         let mut map = HashMap::new();
 
@@ -79,8 +76,8 @@ impl Solution {
 
             for &e in v.iter() {
                 let id = graph.add_node(NodeData {
-                    x: 300.,
-                    y: 300.,
+                    x: 200.,
+                    y: 50.,
                     user_data: e.into(),
                     ..Default::default()
                 });
@@ -136,13 +133,13 @@ impl Solution {
         }
         uf
     }
-    fn rank_groups(matrix: &Vec<Vec<i32>>, graph: &mut ForceGraph<Pos>)
-    -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
+    fn rank_groups(matrix: &Vec<Vec<i32>>, graph: &mut ForceGraph<Pos>) -> HashMap<(usize, usize), i32> {
+        
         fn find_min<'a>(matrix: &Vec<Vec<i32>>, graph: &ForceGraph<Pos>) -> Option<(NodeId, (usize, usize))> {
             if graph.edge_count() == 0 {
                 return None;
             }
-            let mut nodes = std::collections::HashMap::new();
+            let mut nodes = HashMap::new();
             graph.visit_nodes(|id, node| {
                 nodes.insert(node.user_data().0.1, id);
             });
@@ -160,20 +157,22 @@ impl Solution {
             }
             ret
         }
-        
-        let mut ret = Vec::new();
+
+        let mut positions = HashMap::new();
+
+        graph.visit_nodes(|_id, node| {
+            positions.insert(node.user_data().0.1, 1);
+        });
 
         while let Some((id, head)) = find_min(matrix, graph) {
+            for neighbor in graph.neighbors_data(id).detach() {
+                let neighbor = neighbor.user_data().0.1;
+                positions.insert(neighbor, i32::max(*positions.get(&head).unwrap() + 1, *positions.get(&neighbor).unwrap()));
+            }
             graph.remove_node(id);
-            ret.push(head);
         }
-        
-        let mut remaining = Vec::new();
-        graph.visit_nodes(|_, node| {
-            remaining.push(node.user_data().0.1);
-        });
-        //println!("(ret, remaining) {:?}", (&ret, &remaining));
-        (ret, remaining)
+
+        positions
     }
 }
 

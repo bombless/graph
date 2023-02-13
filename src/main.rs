@@ -8,7 +8,9 @@ fn from_array<const M: usize, const N: usize>(arr: [[i32; N]; M]) -> Vec<Vec<i32
 }
 
 fn get_data() -> Vec<Vec<i32>> {
-    from_array([[1,2],[3,4]])
+    // from_array([[1,2],[3,4]])
+    // from_array([[7,7],[7,7]])
+    from_array([[20,-21,14],[-19,4,19],[22,-47,24],[-19,4,19]])
 }
 
 #[macroquad::main("Demo")]
@@ -16,7 +18,7 @@ async fn main() {
 
     // let graph = init_graph();
     let matrix = get_data();
-    // println!("result {:?}", Solution::matrix_rank_transform(matrix));
+    println!("result {:?}", Solution::matrix_rank_transform(matrix.clone()));
     let mut uf = Solution::union_find(&matrix);
     let graph = Solution::force_graph(&matrix, &mut uf);
     run_graph(graph).await;
